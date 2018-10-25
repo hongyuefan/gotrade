@@ -1,0 +1,11 @@
+{
+	"appid":"",
+	"appkey":"",
+	"mchid":"",
+	"notifyUrl":"",
+	"ip":"",
+	"port":"8000",
+	"prof":"10006",
+	"logdir":"./",
+	"idls":10
+}
