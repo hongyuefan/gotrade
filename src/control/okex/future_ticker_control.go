@@ -29,8 +29,6 @@ func (a *AgentTicker) TickerHandler(msg interface{}) error {
 		return nil
 	}
 
-	fmt.Println(string(msg.([]byte)))
-
 	return nil
 
 }
@@ -56,6 +54,8 @@ func (a *AgentTicker) Run() {
 				break
 			}
 		}
+
+		fmt.Println(string(data))
 
 		if err = a.TickerHandler(data); err != nil {
 			log.GetLog().LogError("KlineHandler message error: ", err)
