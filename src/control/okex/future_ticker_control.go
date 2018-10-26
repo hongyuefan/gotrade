@@ -22,19 +22,31 @@ func NewAgentTicker(conn *wclient.WSConn, gate *wshb.Gate) wclient.Agent {
 }
 
 func (a *AgentTicker) TickerHandler(msg interface{}) error {
+	var (
+		tickers []*om.RspFurtureTicker
+		err     error
+	)
+
+	if err = a.gate.Processor.UnMarshal(msg.([]byte), tickers); err != nil {
+		return err
+	}
+
+	fmt.Println(tickers)
+
 	return nil
 
 }
 func (a *AgentTicker) Run() {
 
 	var (
-		err  error
-		data []byte
+		err      error
+		data     []byte
+		pingPong om.PingPang
 	)
 
 	go a.Ping()
 
-	a.WriteMsg(&om.ReqComm{Event: "addChannel", Channel: "ok_sub_futureusd_btc_ticker_this_week"})
+	a.WriteMsg(&om.ReqFurtureTicker{Event: "addChannel", Channel: "ok_sub_futureusd_btc_ticker_this_week"})
 
 	for {
 
@@ -52,7 +64,9 @@ func (a *AgentTicker) Run() {
 			}
 		}
 
-		fmt.Println(string(data))
+		if err = a.gate.Processor.UnMarshal(data, &pingPong); err == nil {
+			continue
+		}
 
 		if err = a.TickerHandler(data); err != nil {
 			log.GetLog().LogError("KlineHandler message error: ", err)
@@ -68,8 +82,6 @@ func (a *AgentTicker) WriteMsg(msg interface{}) {
 		data []byte
 		err  error
 	)
-
-	fmt.Println("writeMsg", msg)
 
 	if a.gate.Processor != nil {
 		if data, err = a.gate.Processor.Marshal(msg); err != nil {

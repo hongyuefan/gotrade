@@ -39,7 +39,7 @@ func (a *AgentSpotTicker) Run() {
 		data []byte
 	)
 
-	a.WriteMsg(&om.ReqComm{Event: "addChannel", Channel: "ok_sub_spot_bch_btc_ticker"})
+	a.WriteMsg(&om.ReqFurtureTicker{Event: "addChannel", Channel: "ok_sub_spot_bch_btc_ticker"})
 
 	for {
 
