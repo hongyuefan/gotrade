@@ -11,32 +11,32 @@ import (
 	"util/wclient"
 )
 
-type AgentTicker struct {
+type AgentDepth struct {
 	gate     *wshb.Gate
 	conn     *wclient.WSConn
 	chanSign chan bool
 }
 
-func NewAgentTicker(conn *wclient.WSConn, gate *wshb.Gate) wclient.Agent {
-	return &AgentTicker{conn: conn, gate: gate, chanSign: make(chan bool, 1)}
+func NewAgentDepth(conn *wclient.WSConn, gate *wshb.Gate) wclient.Agent {
+	return &AgentDepth{conn: conn, gate: gate, chanSign: make(chan bool, 1)}
 }
 
-func (a *AgentTicker) TickerHandler(msg interface{}) error {
+func (a *AgentDepth) DepthHandler(msg interface{}) error {
 	var (
-		tickers []om.RspFurtureTicker
-		err     error
+		depths []om.RspFurtureDepth
+		err    error
 	)
 
-	if err = a.gate.Processor.UnMarshal(msg.([]byte), &tickers); err != nil {
+	if err = a.gate.Processor.UnMarshal(msg.([]byte), &depths); err != nil {
 		return err
 	}
 
-	fmt.Println(tickers)
+	fmt.Println(depths)
 
 	return nil
 
 }
-func (a *AgentTicker) Run() {
+func (a *AgentDepth) Run() {
 
 	var (
 		err      error
@@ -46,7 +46,7 @@ func (a *AgentTicker) Run() {
 
 	go a.Ping()
 
-	a.WriteMsg(&om.ReqFurtureTicker{Event: "addChannel", Channel: "ok_sub_futureusd_btc_ticker_this_week"})
+	a.WriteMsg(&om.ReqFurtureTicker{Event: "addChannel", Channel: "ok_sub_futureusd_btc_depth_this_week"})
 
 	for {
 
@@ -68,14 +68,16 @@ func (a *AgentTicker) Run() {
 			continue
 		}
 
-		if err = a.TickerHandler(data); err != nil {
+		fmt.Println(string(data))
+
+		if err = a.DepthHandler(data); err != nil {
 			log.GetLog().LogError("KlineHandler message error: ", err)
 		}
 
 	}
 }
 
-func (a *AgentTicker) WriteMsg(msg interface{}) {
+func (a *AgentDepth) WriteMsg(msg interface{}) {
 	var (
 		data []byte
 		err  error
@@ -93,7 +95,7 @@ func (a *AgentTicker) WriteMsg(msg interface{}) {
 	}
 }
 
-func (a *AgentTicker) Ping() {
+func (a *AgentDepth) Ping() {
 
 	ticker := time.NewTicker(time.Second * 30)
 
@@ -109,18 +111,18 @@ func (a *AgentTicker) Ping() {
 
 }
 
-func (a *AgentTicker) LocalAddr() net.Addr {
+func (a *AgentDepth) LocalAddr() net.Addr {
 	return a.conn.LocalAddr()
 }
 
-func (a *AgentTicker) RemoteAddr() net.Addr {
+func (a *AgentDepth) RemoteAddr() net.Addr {
 	return a.conn.RemoteAddr()
 }
 
-func (a *AgentTicker) OnClose() {
+func (a *AgentDepth) OnClose() {
 	a.conn.Close()
 }
 
-func (a *AgentTicker) Destroy() {
+func (a *AgentDepth) Destroy() {
 	a.conn.Destroy()
 }

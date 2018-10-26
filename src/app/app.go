@@ -64,9 +64,10 @@ func OnInitFlag(c *config.Config) (err error) {
 func (app *App) CotrolHandlers() {
 
 	app.closeSig = make(chan bool, 1)
-	//47.90.109.236:10441
+
 	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, jsonprocess.NewJsonProcess(), nil)
-	go klGate.Run(app.closeSig, okex.NewAgentTicker)
+
+	go klGate.Run(app.closeSig, okex.NewAgentDepth)
 }
 
 func (app *App) OnStart(c *config.Config) error {

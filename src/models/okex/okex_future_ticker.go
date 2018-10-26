@@ -8,7 +8,6 @@ type ReqFurtureTicker struct {
 type RspFurtureTicker struct {
 	Data    FurtureTicker `json:"data"`
 	Channel string        `json:"channel"`
-	Binary  int32         `json:"binary"`
 }
 
 type FurtureTicker struct {
