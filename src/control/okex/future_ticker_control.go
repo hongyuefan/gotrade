@@ -23,11 +23,11 @@ func NewAgentTicker(conn *wclient.WSConn, gate *wshb.Gate) wclient.Agent {
 
 func (a *AgentTicker) TickerHandler(msg interface{}) error {
 	var (
-		tickers []*om.RspFurtureTicker
+		tickers []om.RspFurtureTicker
 		err     error
 	)
 
-	if err = a.gate.Processor.UnMarshal(msg.([]byte), tickers); err != nil {
+	if err = a.gate.Processor.UnMarshal(msg.([]byte), &tickers); err != nil {
 		return err
 	}
 
