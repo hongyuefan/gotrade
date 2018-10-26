@@ -11,4 +11,7 @@ type RspFurtureDepth struct {
 }
 
 type FurtureDepth struct {
+	TimeStamp int64       `json:"timestamp"`
+	Asks      [][]float32 `json:"asks"`
+	Bids      [][]float32 `json:"bids"`
 }

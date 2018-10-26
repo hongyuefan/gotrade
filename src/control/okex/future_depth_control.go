@@ -68,8 +68,6 @@ func (a *AgentDepth) Run() {
 			continue
 		}
 
-		fmt.Println(string(data))
-
 		if err = a.DepthHandler(data); err != nil {
 			log.GetLog().LogError("KlineHandler message error: ", err)
 		}
