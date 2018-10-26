@@ -34,5 +34,5 @@ func (a *AgentDepth) Handler(msg interface{}) error {
 
 }
 func (a *AgentDepth) GetSubs() []interface{} {
-	return []interface{}{&om.ReqFurtureTicker{Event: "addChannel", Channel: "ok_sub_futureusd_btc_depth_this_week"}}
+	return []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_depth_this_week"}}
 }
