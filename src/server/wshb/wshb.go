@@ -12,6 +12,11 @@ type MsgProcess interface {
 	Route(interface{}, wclient.Agent) error
 }
 
+type AgentInstance interface {
+	Handler(interface{}) error
+	GetSubs() []interface{}
+}
+
 type MsgCompress interface {
 	Compress([]byte) ([]byte, error)
 	UnCompress([]byte) ([]byte, error)
@@ -31,7 +36,9 @@ type Gate struct {
 	Compress  MsgCompress
 }
 
-type FuncNewAgent func(*wclient.WSConn, *Gate) wclient.Agent
+type FuncNewInstance func(MsgProcess, MsgCompress) AgentInstance
+
+type FuncNewAgent func(*wclient.WSConn, *Gate, AgentInstance) wclient.Agent
 
 func NewGate(addr string, conNum, writeNum int, maxMsgLen uint32, conInterval, handshakeTimeout time.Duration, autoReconect bool, process MsgProcess, compress MsgCompress) *Gate {
 
@@ -49,7 +56,7 @@ func NewGate(addr string, conNum, writeNum int, maxMsgLen uint32, conInterval, h
 	return gate
 }
 
-func (gate *Gate) Run(closeSig chan bool, funcAgent FuncNewAgent) {
+func (gate *Gate) Run(closeSig chan bool, funcAgent FuncNewAgent, funcInstance FuncNewInstance) {
 
 	wc := new(wclient.WSClient)
 	wc.Addr = gate.Addr
@@ -61,7 +68,7 @@ func (gate *Gate) Run(closeSig chan bool, funcAgent FuncNewAgent) {
 	wc.PendingWriteNum = gate.PendingWriteNum
 
 	wc.NewAgent = func(conn *wclient.WSConn) wclient.Agent {
-		return funcAgent(conn, gate)
+		return funcAgent(conn, gate, funcInstance(gate.Processor, gate.Compress))
 	}
 
 	wc.Start()
