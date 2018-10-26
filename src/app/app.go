@@ -67,7 +67,7 @@ func (app *App) CotrolHandlers() {
 
 	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, jsonprocess.NewJsonProcess(), nil)
 
-	go klGate.Run(app.closeSig, okex.NewAgentDepth)
+	go klGate.Run(app.closeSig, okex.NewAgentTrade)
 }
 
 func (app *App) OnStart(c *config.Config) error {
