@@ -37,6 +37,18 @@ func (a *Agent) subTitles() {
 	}
 }
 
+func (a *Agent) WriteMsgHandler() {
+	for {
+		select {
+		case msg := <-a.instance.GetWriteMsg():
+			a.WriteMsg(msg)
+		case <-a.chanSign:
+			return
+		}
+	}
+
+}
+
 func (a *Agent) Run() {
 
 	var (
@@ -46,6 +58,8 @@ func (a *Agent) Run() {
 	)
 
 	go a.Ping()
+
+	go a.WriteMsgHandler()
 
 	a.subTitles()
 

@@ -15,6 +15,7 @@ type MsgProcess interface {
 type AgentInstance interface {
 	Handler(interface{}) error
 	GetSubs() []interface{}
+	GetWriteMsg() chan interface{}
 }
 
 type MsgCompress interface {

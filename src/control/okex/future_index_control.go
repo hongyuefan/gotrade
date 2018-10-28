@@ -7,14 +7,16 @@ import (
 )
 
 type AgentIndex struct {
-	process  wshb.MsgProcess
-	compress wshb.MsgCompress
+	process     wshb.MsgProcess
+	compress    wshb.MsgCompress
+	chanSendMsg chan interface{}
 }
 
-func NewAgentIndex(p wshb.MsgProcess, c wshb.MsgCompress) wshb.AgentInstance {
+func NewAgentIndex(p wshb.MsgProcess, c wshb.MsgCompress, sendMsgLen int32) wshb.AgentInstance {
 	return &AgentIndex{
-		process:  p,
-		compress: c,
+		process:     p,
+		compress:    c,
+		chanSendMsg: make(chan interface{}, sendMsgLen),
 	}
 }
 
@@ -35,4 +37,7 @@ func (a *AgentIndex) Handler(msg interface{}) error {
 }
 func (a *AgentIndex) GetSubs() []interface{} {
 	return []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_index"}}
+}
+func (a *AgentIndex) GetWriteMsg() chan interface{} {
+	return a.chanSendMsg
 }

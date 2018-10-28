@@ -7,14 +7,16 @@ import (
 )
 
 type AgentPrice struct {
-	process  wshb.MsgProcess
-	compress wshb.MsgCompress
+	process     wshb.MsgProcess
+	compress    wshb.MsgCompress
+	chanSendMsg chan interface{}
 }
 
-func NewAgentPrice(p wshb.MsgProcess, c wshb.MsgCompress) wshb.AgentInstance {
+func NewAgentPrice(p wshb.MsgProcess, c wshb.MsgCompress, sendMsgLen int32) wshb.AgentInstance {
 	return &AgentPrice{
-		process:  p,
-		compress: c,
+		process:     p,
+		compress:    c,
+		chanSendMsg: make(chan interface{}, sendMsgLen),
 	}
 }
 
@@ -35,4 +37,7 @@ func (a *AgentPrice) Handler(msg interface{}) error {
 }
 func (a *AgentPrice) GetSubs() []interface{} {
 	return []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "btc_forecast_price"}}
+}
+func (a *AgentPrice) GetWriteMsg() chan interface{} {
+	return a.chanSendMsg
 }
