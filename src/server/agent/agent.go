@@ -97,12 +97,12 @@ func (a *Agent) WriteMsg(msg interface{}) {
 		err  error
 	)
 
-	//	if a.process != nil {
-	//		if data, err = a.process.Marshal(msg); err != nil {
-	//			log.GetLog().LogError("marshal message ", reflect.TypeOf(msg), " error:", err)
-	//			return
-	//		}
-	//	}
+	if a.process != nil {
+		if data, err = a.process.Marshal(msg); err != nil {
+			log.GetLog().LogError("marshal message ", reflect.TypeOf(msg), " error:", err)
+			return
+		}
+	}
 
 	if err = a.conn.WriteMsg(data); err != nil {
 		log.GetLog().LogError("write message ", reflect.TypeOf(msg), "error:", err)
