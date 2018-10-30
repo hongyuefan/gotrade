@@ -2,7 +2,7 @@ package gzipcompress
 
 import (
 	"bytes"
-	"compress/gzip"
+	"compress/flate"
 	"io/ioutil"
 )
 
@@ -13,30 +13,12 @@ func NewMsgGZip() *MsgGZip {
 }
 
 func (gz *MsgGZip) Compress(in []byte) ([]byte, error) {
-	var (
-		buffer bytes.Buffer
-		out    []byte
-		err    error
-	)
-	writer := gzip.NewWriter(&buffer)
-	_, err = writer.Write(in)
-	if err != nil {
-		writer.Close()
-		return out, err
-	}
-	err = writer.Close()
-	if err != nil {
-		return out, err
-	}
-	return buffer.Bytes(), nil
+	return nil, nil
 }
 
 func (gz *MsgGZip) UnCompress(in []byte) ([]byte, error) {
-	reader, err := gzip.NewReader(bytes.NewReader(in))
-	if err != nil {
-		var out []byte
-		return out, err
-	}
+	reader := flate.NewReader(bytes.NewReader(in))
 	defer reader.Close()
+
 	return ioutil.ReadAll(reader)
 }
