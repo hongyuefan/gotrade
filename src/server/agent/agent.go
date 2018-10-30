@@ -3,7 +3,6 @@ package agent
 import (
 	"net"
 	"reflect"
-	"server/wshb"
 	"time"
 	"util/log"
 	"util/wclient"
@@ -13,55 +12,57 @@ type PingPang struct {
 	Event string `json:"event"`
 }
 
+type MsgProcess interface {
+	UnMarshal([]byte, interface{}) error
+	Marshal(interface{}) ([]byte, error)
+}
+type MsgCompress interface {
+	Compress([]byte) ([]byte, error)
+	UnCompress([]byte) ([]byte, error)
+}
+
 type Agent struct {
 	chanSign chan bool
-	gate     *wshb.Gate
-	instance wshb.AgentInstance
 	conn     *wclient.WSConn
+	compress MsgCompress
+	process  MsgProcess
+	chanByte chan []byte
+	subs     []interface{}
 }
 
-func NewAgent(conn *wclient.WSConn, gate *wshb.Gate, instance wshb.AgentInstance) wclient.Agent {
-
+func NewAgent(compress MsgCompress, process MsgProcess, msgChanLen uint32) wclient.Agent {
 	return &Agent{
-		conn:     conn,
-		gate:     gate,
-		instance: instance,
 		chanSign: make(chan bool, 1),
+		compress: compress,
+		process:  process,
+		chanByte: make(chan []byte, msgChanLen),
 	}
-
 }
 
-func (a *Agent) subTitles() {
-	for _, sub := range a.instance.GetSubs() {
+func (a *Agent) SetSubs(subs []interface{}) {
+	a.subs = append(a.subs, subs)
+}
+
+func (a *Agent) SetCon(wsCon *wclient.WSConn) {
+	a.conn = wsCon
+}
+
+func (a *Agent) sendSubs() {
+	for _, sub := range a.subs {
 		a.WriteMsg(sub)
 	}
-}
-
-func (a *Agent) WriteMsgHandler() {
-	for {
-		select {
-		case msg := <-a.instance.GetWriteMsg():
-			a.WriteMsg(msg)
-		case <-a.chanSign:
-			return
-		}
-	}
-
 }
 
 func (a *Agent) Run() {
 
 	var (
-		err      error
-		data     []byte
-		pingPong PingPang
+		err  error
+		data []byte
 	)
 
 	go a.Ping()
 
-	go a.WriteMsgHandler()
-
-	a.subTitles()
+	a.sendSubs()
 
 	for {
 
@@ -71,23 +72,23 @@ func (a *Agent) Run() {
 			break
 		}
 
-		if a.gate.Compress != nil {
-			if data, err = a.gate.Compress.UnCompress(data); err != nil {
-				log.GetLog().LogError("read message uncompress: ", err)
+		if a.compress != nil {
+			if data, err = a.compress.UnCompress(data); err != nil {
+				log.GetLog().LogError("uncompress error ", err)
 				a.chanSign <- true
 				break
 			}
 		}
-
-		if err = a.gate.Processor.UnMarshal(data, &pingPong); err == nil {
+		if len(a.chanByte) == cap(a.chanByte) {
+			log.GetLog().LogError("agent msg chan has full")
 			continue
 		}
-
-		if err = a.instance.Handler(data); err != nil {
-			log.GetLog().LogError("handler message error: ", err)
-		}
-
+		a.chanByte <- data
 	}
+}
+
+func (a *Agent) ChanMsg() chan []byte {
+	return a.chanByte
 }
 
 func (a *Agent) WriteMsg(msg interface{}) {
@@ -96,12 +97,12 @@ func (a *Agent) WriteMsg(msg interface{}) {
 		err  error
 	)
 
-	if a.gate.Processor != nil {
-		if data, err = a.gate.Processor.Marshal(msg); err != nil {
-			log.GetLog().LogError("marshal message ", reflect.TypeOf(msg), " error:", err)
-			return
-		}
-	}
+	//	if a.process != nil {
+	//		if data, err = a.process.Marshal(msg); err != nil {
+	//			log.GetLog().LogError("marshal message ", reflect.TypeOf(msg), " error:", err)
+	//			return
+	//		}
+	//	}
 
 	if err = a.conn.WriteMsg(data); err != nil {
 		log.GetLog().LogError("write message ", reflect.TypeOf(msg), "error:", err)

@@ -3,41 +3,56 @@ package okex
 import (
 	"fmt"
 	om "models/okex"
+	"server/agent"
+	compress "server/gzipcompress"
+	process "server/jsonprocess"
 	"server/wshb"
+	"util/log"
+	"util/wclient"
 )
 
 type AgentTrade struct {
-	process     wshb.MsgProcess
-	compress    wshb.MsgCompress
-	chanSendMsg chan interface{}
+	Agent    wclient.Agent
+	Subs     []interface{}
+	Process  agent.MsgProcess
+	Compress agent.MsgCompress
 }
 
-func NewAgentTrade(p wshb.MsgProcess, c wshb.MsgCompress, sendMsgLen int32) wshb.AgentInstance {
+func NewAgentTrade(chanMsgLen uint32) wshb.AgentInstance {
+
+	Process := process.NewJsonProcess()
+	Compress := compress.NewMsgGZip()
+
 	return &AgentTrade{
-		process:     p,
-		compress:    c,
-		chanSendMsg: make(chan interface{}, sendMsgLen),
+		Process:  Process,
+		Compress: Compress,
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Subs:     []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_trade_this_week"}},
 	}
 }
 
-func (a *AgentTrade) Handler(msg interface{}) error {
+func (a *AgentTrade) OnInit() {
+	a.Agent.SetSubs(a.Subs)
+}
+func (a *AgentTrade) GetAgent() wclient.Agent {
+	return a.Agent
+}
+func (a *AgentTrade) Handler(msg interface{}) {
 	var (
-		rsps []om.RspFurtureTrade
-		err  error
+		depths []om.RspFurtureTrade
+		err    error
 	)
 
-	if err = a.process.UnMarshal(msg.([]byte), &rsps); err != nil {
-		return err
+	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
+		log.GetLog().LogError("AgentTrade handler error", err)
+		return
 	}
 
-	fmt.Println(rsps)
+	fmt.Println(depths)
 
-	return nil
+	return
 
 }
-func (a *AgentTrade) GetSubs() []interface{} {
-	return []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_trade_this_week"}}
-}
-func (a *AgentTrade) GetWriteMsg() chan interface{} {
-	return a.chanSendMsg
+func (a *AgentTrade) WriteMsg(msg interface{}) {
+	a.Agent.WriteMsg(msg)
 }

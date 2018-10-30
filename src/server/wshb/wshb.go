@@ -2,25 +2,14 @@ package wshb
 
 import (
 	"time"
-
 	"util/wclient"
 )
 
-type MsgProcess interface {
-	UnMarshal([]byte, interface{}) error
-	Marshal(interface{}) ([]byte, error)
-	Route(interface{}, wclient.Agent) error
-}
-
 type AgentInstance interface {
-	Handler(interface{}) error
-	GetSubs() []interface{}
-	GetWriteMsg() chan interface{}
-}
-
-type MsgCompress interface {
-	Compress([]byte) ([]byte, error)
-	UnCompress([]byte) ([]byte, error)
+	WriteMsg(interface{})
+	Handler(interface{})
+	OnInit()
+	GetAgent() wclient.Agent
 }
 
 type Gate struct {
@@ -31,21 +20,12 @@ type Gate struct {
 	MaxMsgLen        uint32
 	HandshakeTimeout time.Duration
 	AutoReconnect    bool
-	NewAgent         func(*wclient.WSConn) wclient.Agent
-
-	Processor MsgProcess
-	Compress  MsgCompress
+	Agent            AgentInstance
 }
 
-type FuncNewInstance func(MsgProcess, MsgCompress) AgentInstance
-
-type FuncNewAgent func(*wclient.WSConn, *Gate, AgentInstance) wclient.Agent
-
-func NewGate(addr string, conNum, writeNum int, maxMsgLen uint32, conInterval, handshakeTimeout time.Duration, autoReconect bool, process MsgProcess, compress MsgCompress) *Gate {
+func NewGate(addr string, conNum, writeNum int, maxMsgLen uint32, conInterval, handshakeTimeout time.Duration, autoReconect bool, agentInstance AgentInstance) *Gate {
 
 	gate := new(Gate)
-	gate.Compress = compress
-	gate.Processor = process
 	gate.Addr = addr
 	gate.ConnNum = conNum
 	gate.ConnectInterval = conInterval
@@ -53,11 +33,14 @@ func NewGate(addr string, conNum, writeNum int, maxMsgLen uint32, conInterval, h
 	gate.MaxMsgLen = maxMsgLen
 	gate.HandshakeTimeout = handshakeTimeout
 	gate.AutoReconnect = autoReconect
+	gate.Agent = agentInstance
 
 	return gate
 }
 
-func (gate *Gate) Run(closeSig chan bool, funcAgent FuncNewAgent, funcInstance FuncNewInstance) {
+func (gate *Gate) Run(closeSig chan bool) {
+
+	gate.Agent.OnInit()
 
 	wc := new(wclient.WSClient)
 	wc.Addr = gate.Addr
@@ -67,11 +50,7 @@ func (gate *Gate) Run(closeSig chan bool, funcAgent FuncNewAgent, funcInstance F
 	wc.HandshakeTimeout = gate.HandshakeTimeout
 	wc.MaxMsgLen = gate.MaxMsgLen
 	wc.PendingWriteNum = gate.PendingWriteNum
-
-	wc.NewAgent = func(conn *wclient.WSConn) wclient.Agent {
-		return funcAgent(conn, gate, funcInstance(gate.Processor, gate.Compress))
-	}
-
+	wc.WAgent = gate.Agent.GetAgent()
 	wc.Start()
 	<-closeSig
 	wc.Close()

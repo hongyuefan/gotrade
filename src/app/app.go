@@ -7,8 +7,6 @@ import (
 
 	"api"
 	"control/okex"
-	"server/agent"
-	"server/jsonprocess"
 	"server/wshb"
 	"util/config"
 	"util/log"
@@ -18,7 +16,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const MasterName = "myserver"
+const MasterName = "gotrade"
 
 type ConfigData struct {
 	Port              string
@@ -66,9 +64,9 @@ func (app *App) CotrolHandlers() {
 
 	app.closeSig = make(chan bool, 1)
 
-	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, jsonprocess.NewJsonProcess(), nil)
+	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, okex.NewAgentDepth(256))
 
-	go klGate.Run(app.closeSig, agent.NewAgent, okex.NewAgentDepth)
+	go klGate.Run(app.closeSig)
 }
 
 func (app *App) OnStart(c *config.Config) error {

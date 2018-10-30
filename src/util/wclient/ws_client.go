@@ -17,7 +17,7 @@ type WSClient struct {
 	MaxMsgLen        uint32
 	HandshakeTimeout time.Duration
 	AutoReconnect    bool
-	NewAgent         func(*WSConn) Agent
+	WAgent           Agent
 	dialer           websocket.Dialer
 	conns            WebsocketConnSet
 	wg               sync.WaitGroup
@@ -58,8 +58,8 @@ func (client *WSClient) init() {
 		client.HandshakeTimeout = 10 * time.Second
 		log.GetLog().LogDebug("invalid HandshakeTimeout, reset to", client.HandshakeTimeout)
 	}
-	if client.NewAgent == nil {
-		log.GetLog().LogDebug("NewAgent must not be nil")
+	if client.WAgent == nil {
+		log.GetLog().LogDebug("agent must not be nil")
 	}
 	if client.conns != nil {
 		log.GetLog().LogDebug("client is running")
@@ -105,15 +105,15 @@ reconnect:
 	client.Unlock()
 
 	wsConn := newWSConn(conn, client.PendingWriteNum, client.MaxMsgLen)
-	agent := client.NewAgent(wsConn)
-	agent.Run()
+	client.WAgent.SetCon(wsConn)
+	client.WAgent.Run()
 
 	// cleanup
 	wsConn.Close()
 	client.Lock()
 	delete(client.conns, conn)
 	client.Unlock()
-	agent.OnClose()
+	client.WAgent.OnClose()
 
 	if client.AutoReconnect {
 		time.Sleep(client.ConnectInterval)

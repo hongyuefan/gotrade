@@ -3,41 +3,58 @@ package okex
 import (
 	"fmt"
 	om "models/okex"
+	"server/agent"
+	compress "server/gzipcompress"
+	process "server/jsonprocess"
 	"server/wshb"
+	"util/log"
+	"util/wclient"
 )
 
 type AgentDepth struct {
-	process     wshb.MsgProcess
-	compress    wshb.MsgCompress
-	chanSendMsg chan interface{}
+	Agent    wclient.Agent
+	Subs     []interface{}
+	Process  agent.MsgProcess
+	Compress agent.MsgCompress
 }
 
-func NewAgentDepth(p wshb.MsgProcess, c wshb.MsgCompress, sendMsgLen int32) wshb.AgentInstance {
+func NewAgentDepth(chanMsgLen uint32) wshb.AgentInstance {
+
+	Process := process.NewJsonProcess()
+	Compress := compress.NewMsgGZip()
+
 	return &AgentDepth{
-		process:     p,
-		compress:    c,
-		chanSendMsg: make(chan interface{}, sendMsgLen),
+		Process:  Process,
+		Compress: Compress,
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Subs:     []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_depth_this_week"}},
 	}
 }
 
-func (a *AgentDepth) Handler(msg interface{}) error {
+func (a *AgentDepth) OnInit() {
+	a.Agent.SetSubs(a.Subs)
+}
+
+func (a *AgentDepth) GetAgent() wclient.Agent {
+	return a.Agent
+}
+
+func (a *AgentDepth) Handler(msg interface{}) {
 	var (
 		depths []om.RspFurtureDepth
 		err    error
 	)
 
-	if err = a.process.UnMarshal(msg.([]byte), &depths); err != nil {
-		return err
+	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
+		log.GetLog().LogError("agentDepth handler error", err)
+		return
 	}
 
 	fmt.Println(depths)
 
-	return nil
+	return
 
 }
-func (a *AgentDepth) GetSubs() []interface{} {
-	return []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_depth_this_week"}}
-}
-func (a *AgentDepth) GetWriteMsg() chan interface{} {
-	return a.chanSendMsg
+func (a *AgentDepth) WriteMsg(msg interface{}) {
+	a.Agent.WriteMsg(msg)
 }

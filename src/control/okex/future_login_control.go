@@ -3,41 +3,57 @@ package okex
 import (
 	"fmt"
 	om "models/okex"
+	"server/agent"
+	compress "server/gzipcompress"
+	process "server/jsonprocess"
 	"server/wshb"
+	"util/log"
+	"util/wclient"
 )
 
 type AgentLogin struct {
-	process     wshb.MsgProcess
-	compress    wshb.MsgCompress
-	chanSendMsg chan interface{}
+	Agent    wclient.Agent
+	Subs     []interface{}
+	Process  agent.MsgProcess
+	Compress agent.MsgCompress
 }
 
-func NewAgentLogin(p wshb.MsgProcess, c wshb.MsgCompress, sendMsgLen int32) wshb.AgentInstance {
+func NewAgentLogin(chanMsgLen uint32) wshb.AgentInstance {
+
+	Process := process.NewJsonProcess()
+	Compress := compress.NewMsgGZip()
+
 	return &AgentLogin{
-		process:     p,
-		compress:    c,
-		chanSendMsg: make(chan interface{}, sendMsgLen),
+		Process:  Process,
+		Compress: Compress,
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Subs:     []interface{}{},
 	}
 }
 
-func (a *AgentLogin) Handler(msg interface{}) error {
+func (a *AgentLogin) OnInit() {
+	a.Agent.SetSubs(a.Subs)
+}
+
+func (a *AgentLogin) GetAgent() wclient.Agent {
+	return a.Agent
+}
+func (a *AgentLogin) Handler(msg interface{}) {
 	var (
-		rsps []om.RspFurtureLogin
-		err  error
+		depths []om.RspFurtureLogin
+		err    error
 	)
 
-	if err = a.process.UnMarshal(msg.([]byte), &rsps); err != nil {
-		return err
+	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
+		log.GetLog().LogError("AgentLogin handler error", err)
+		return
 	}
 
-	fmt.Println(rsps)
+	fmt.Println(depths)
 
-	return nil
+	return
 
 }
-func (a *AgentLogin) GetSubs() []interface{} {
-	return []interface{}{}
-}
-func (a *AgentLogin) GetWriteMsg() chan interface{} {
-	return a.chanSendMsg
+func (a *AgentLogin) WriteMsg(msg interface{}) {
+	a.Agent.WriteMsg(msg)
 }
