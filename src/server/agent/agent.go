@@ -21,6 +21,8 @@ type MsgCompress interface {
 	UnCompress([]byte) ([]byte, error)
 }
 
+type FuncHandler func(interface{})
+
 type Agent struct {
 	chanSign chan bool
 	conn     *wclient.WSConn
@@ -28,14 +30,16 @@ type Agent struct {
 	process  MsgProcess
 	chanByte chan []byte
 	subs     []interface{}
+	handler  FuncHandler
 }
 
-func NewAgent(compress MsgCompress, process MsgProcess, msgChanLen uint32) wclient.Agent {
+func NewAgent(compress MsgCompress, process MsgProcess, msgChanLen uint32, funcHandler FuncHandler) wclient.Agent {
 	return &Agent{
 		chanSign: make(chan bool, 1),
 		compress: compress,
 		process:  process,
 		chanByte: make(chan []byte, msgChanLen),
+		handler:  funcHandler,
 	}
 }
 
@@ -79,11 +83,7 @@ func (a *Agent) Run() {
 				break
 			}
 		}
-		if len(a.chanByte) == cap(a.chanByte) {
-			log.GetLog().LogError("agent msg chan has full")
-			continue
-		}
-		a.chanByte <- data
+		a.handler(data)
 	}
 }
 

@@ -1,13 +1,12 @@
 package okex
 
 import (
-	"fmt"
 	om "models/okex"
 	"server/agent"
 	compress "server/gzipcompress"
 	process "server/jsonprocess"
 	"server/wshb"
-	"util/log"
+
 	"util/wclient"
 )
 
@@ -26,7 +25,7 @@ func NewAgentTrade(chanMsgLen uint32) wshb.AgentInstance {
 	return &AgentTrade{
 		Process:  Process,
 		Compress: Compress,
-		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen, Handler),
 		Subs:     []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_trade_this_week"}},
 	}
 }
@@ -36,22 +35,6 @@ func (a *AgentTrade) OnInit() {
 }
 func (a *AgentTrade) GetAgent() wclient.Agent {
 	return a.Agent
-}
-func (a *AgentTrade) Handler(msg interface{}) {
-	var (
-		depths []om.RspFurtureTrade
-		err    error
-	)
-
-	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
-		log.GetLog().LogError("AgentTrade handler error", err)
-		return
-	}
-
-	fmt.Println(depths)
-
-	return
-
 }
 func (a *AgentTrade) WriteMsg(msg interface{}) {
 	a.Agent.WriteMsg(msg)

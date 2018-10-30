@@ -1,13 +1,11 @@
 package okex
 
 import (
-	"fmt"
 	om "models/okex"
 	"server/agent"
 	compress "server/gzipcompress"
 	process "server/jsonprocess"
 	"server/wshb"
-	"util/log"
 	"util/wclient"
 )
 
@@ -26,7 +24,7 @@ func NewAgentTicker(chanMsgLen uint32) wshb.AgentInstance {
 	return &AgentTicker{
 		Process:  Process,
 		Compress: Compress,
-		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen, Handler),
 		Subs:     []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_ticker_this_week"}},
 	}
 }
@@ -36,22 +34,6 @@ func (a *AgentTicker) OnInit() {
 }
 func (a *AgentTicker) GetAgent() wclient.Agent {
 	return a.Agent
-}
-func (a *AgentTicker) Handler(msg interface{}) {
-	var (
-		depths []om.RspFurtureTicker
-		err    error
-	)
-
-	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
-		log.GetLog().LogError("AgentTicker handler error", err)
-		return
-	}
-
-	fmt.Println(depths)
-
-	return
-
 }
 func (a *AgentTicker) WriteMsg(msg interface{}) {
 	a.Agent.WriteMsg(msg)

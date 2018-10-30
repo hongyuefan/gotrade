@@ -1,13 +1,11 @@
 package okex
 
 import (
-	"fmt"
 	om "models/okex"
 	"server/agent"
 	compress "server/gzipcompress"
 	process "server/jsonprocess"
 	"server/wshb"
-	"util/log"
 	"util/wclient"
 )
 
@@ -26,7 +24,7 @@ func NewAgentPrice(chanMsgLen uint32) wshb.AgentInstance {
 	return &AgentPrice{
 		Process:  Process,
 		Compress: Compress,
-		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen, Handler),
 		Subs:     []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "btc_forecast_price"}},
 	}
 }
@@ -37,22 +35,7 @@ func (a *AgentPrice) OnInit() {
 func (a *AgentPrice) GetAgent() wclient.Agent {
 	return a.Agent
 }
-func (a *AgentPrice) Handler(msg interface{}) {
-	var (
-		depths []om.RspFurturePrice
-		err    error
-	)
 
-	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
-		log.GetLog().LogError("AgentPrice handler error", err)
-		return
-	}
-
-	fmt.Println(depths)
-
-	return
-
-}
 func (a *AgentPrice) WriteMsg(msg interface{}) {
 	a.Agent.WriteMsg(msg)
 }

@@ -7,7 +7,6 @@ import (
 
 type AgentInstance interface {
 	WriteMsg(interface{})
-	Handler(interface{})
 	OnInit()
 	GetAgent() wclient.Agent
 }

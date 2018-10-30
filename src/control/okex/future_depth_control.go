@@ -7,7 +7,6 @@ import (
 	compress "server/gzipcompress"
 	process "server/jsonprocess"
 	"server/wshb"
-	"util/log"
 	"util/wclient"
 )
 
@@ -26,7 +25,7 @@ func NewAgentDepth(chanMsgLen uint32) wshb.AgentInstance {
 	return &AgentDepth{
 		Process:  Process,
 		Compress: Compress,
-		Agent:    agent.NewAgent(Compress, Process, chanMsgLen),
+		Agent:    agent.NewAgent(Compress, Process, chanMsgLen, Handler),
 		Subs:     []interface{}{&om.ReqAddChannel{Event: "addChannel", Channel: "ok_sub_futureusd_btc_depth_this_week"}},
 	}
 }
@@ -39,21 +38,21 @@ func (a *AgentDepth) GetAgent() wclient.Agent {
 	return a.Agent
 }
 
-func (a *AgentDepth) Handler(msg interface{}) {
-	var (
-		depths []om.RspFurtureDepth
-		err    error
-	)
+func Handler(msg interface{}) {
 
-	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
-		log.GetLog().LogError("agentDepth handler error", err)
-		return
-	}
+	//	var (
+	//		depths []om.RspFurtureDepth
+	//		err    error
+	//	)
 
-	fmt.Println(depths)
+	//	if err = a.Process.UnMarshal(msg.([]byte), &depths); err != nil {
+	//		log.GetLog().LogError("agentDepth handler error", err)
+	//		return
+	//	}
+
+	fmt.Println(string(msg.([]byte)))
 
 	return
-
 }
 func (a *AgentDepth) WriteMsg(msg interface{}) {
 	a.Agent.WriteMsg(msg)
