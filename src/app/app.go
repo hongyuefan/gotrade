@@ -7,9 +7,11 @@ import (
 
 	"api"
 	"control/okex"
+	mo "models/okex"
 	"server/wshb"
 	"util/config"
 	"util/log"
+	"util/sign"
 
 	"github.com/astaxie/beego/orm"
 	gin "github.com/gin-gonic/gin"
@@ -64,9 +66,20 @@ func (app *App) CotrolHandlers() {
 
 	app.closeSig = make(chan bool, 1)
 
-	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, okex.NewAgentDepth(256))
+	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, okex.NewAgentLogin(256))
 
 	go klGate.Run(app.closeSig)
+
+	var lg mo.ReqFurtureLogin
+	timeStamp := fmt.Sprintf("%v", float32(time.Now().UnixNano()/1000))
+
+	lg.Event = "login"
+	lg.Params.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
+	lg.Params.PassPhrase = "IMDANDAN"
+	lg.Params.Sign = sign.HMacSha256(timeStamp+"GET"+"/users/self/verify", []byte("3628818392EC421EF456070057E0F9CF"))
+	lg.Params.TimeStamp = timeStamp
+
+	klGate.Agent.WriteMsg(lg)
 }
 
 func (app *App) OnStart(c *config.Config) error {
