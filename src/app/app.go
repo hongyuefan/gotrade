@@ -6,6 +6,8 @@ import (
 	"fmt"
 	mo "models/okex"
 	"net/http"
+	"server/jsonprocess"
+	"server/restful"
 	"server/wshb"
 	"strconv"
 	"time"
@@ -34,8 +36,9 @@ type ConfigData struct {
 }
 
 type App struct {
-	handlers *api.Handlers
-	closeSig chan bool
+	handlers   *api.Handlers
+	restServer *restful.RestServer
+	closeSig   chan bool
 }
 
 var g_ConfigData *ConfigData
@@ -62,6 +65,12 @@ func OnInitFlag(c *config.Config) (err error) {
 
 }
 
+func (app *App) RegistRestServer() {
+
+	app.restServer = restful.NewRestServer(jsonprocess.NewJsonProcess())
+
+	app.restServer.RegistInterface("order", "https://www.okex.com/api/futures/v3/order", "contentType:application/json", restful.Method_Post)
+}
 func (app *App) CotrolHandlers() {
 
 	app.closeSig = make(chan bool, 1)
@@ -71,8 +80,6 @@ func (app *App) CotrolHandlers() {
 	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, sagent)
 
 	go klGate.Run(app.closeSig)
-
-	time.Sleep(time.Second * 3)
 
 	var lg mo.ReqFurtureLogin
 	var unixMic int = int(time.Now().UnixNano() / 1000000)
