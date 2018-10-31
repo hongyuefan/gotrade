@@ -60,8 +60,9 @@ func (a *Agent) sendSubs() {
 func (a *Agent) Run() {
 
 	var (
-		err  error
-		data []byte
+		err      error
+		data     []byte
+		pingPang PingPang
 	)
 
 	go a.Ping()
@@ -83,6 +84,11 @@ func (a *Agent) Run() {
 				break
 			}
 		}
+
+		if err = a.process.UnMarshal(data, &pingPang); err == nil {
+			continue
+		}
+
 		a.handler(data)
 	}
 }
