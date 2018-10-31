@@ -1,14 +1,14 @@
 package app
 
 import (
-	"fmt"
-	"net/http"
-	"time"
-
 	"api"
 	"control/okex"
+	"fmt"
 	mo "models/okex"
+	"net/http"
 	"server/wshb"
+	"strconv"
+	"time"
 	"util/config"
 	"util/log"
 	"util/sign"
@@ -66,14 +66,18 @@ func (app *App) CotrolHandlers() {
 
 	app.closeSig = make(chan bool, 1)
 
-	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, okex.NewAgentLogin(256))
+	sagent := okex.NewAgentLogin(256)
+
+	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, sagent)
 
 	go klGate.Run(app.closeSig)
 
-	time.Sleep(2000)
+	time.Sleep(time.Second * 3)
 
 	var lg mo.ReqFurtureLogin
-	timeStamp := fmt.Sprintf("%v", float32(time.Now().UnixNano()/1000))
+	var unixMic int = int(time.Now().UnixNano() / 1000000)
+	timeStamp := strconv.Itoa(unixMic)
+	timeStamp = timeStamp[:len(timeStamp)-3] + "." + timeStamp[len(timeStamp)-3:]
 	fmt.Println(timeStamp)
 	lg.Event = "login"
 	lg.Params.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
@@ -81,7 +85,7 @@ func (app *App) CotrolHandlers() {
 	lg.Params.Sign = sign.HMacSha256(timeStamp+"GET"+"/users/self/verify", []byte("3628818392EC421EF456070057E0F9CF"))
 	lg.Params.TimeStamp = timeStamp
 
-	klGate.Agent.WriteMsg(lg)
+	sagent.WriteMsg(lg)
 }
 
 func (app *App) OnStart(c *config.Config) error {
