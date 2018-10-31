@@ -70,9 +70,11 @@ func (app *App) CotrolHandlers() {
 
 	go klGate.Run(app.closeSig)
 
+	time.Sleep(2000)
+
 	var lg mo.ReqFurtureLogin
 	timeStamp := fmt.Sprintf("%v", float32(time.Now().UnixNano()/1000))
-
+	fmt.Println(timeStamp)
 	lg.Event = "login"
 	lg.Params.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
 	lg.Params.PassPhrase = "IMDANDAN"
