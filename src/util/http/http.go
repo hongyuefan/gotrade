@@ -50,13 +50,14 @@ func Get(url string, headers map[string]string) ([]byte, error) {
 	}
 
 	rsp, err := client.Do(req)
-	if rsp.StatusCode != hp.StatusOK {
-		return nil, fmt.Errorf("GET %v Error code:%v,msg:%v", url, rsp.StatusCode, rsp.Status)
-	}
 
 	buf := new(bytes.Buffer)
 
 	io.Copy(buf, rsp.Body)
+
+	if rsp.StatusCode != hp.StatusOK {
+		return nil, fmt.Errorf("GET %v Error code:%v,msg:%v", url, rsp.StatusCode, buf.String())
+	}
 
 	return buf.Bytes(), nil
 }

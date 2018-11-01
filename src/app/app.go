@@ -5,11 +5,11 @@ import (
 
 	"fmt"
 	"net/http"
-	"server/jsonprocess"
 	"server/restful"
-
 	"util/config"
 	"util/log"
+
+	"github.com/okcoin-okex/open-api-v3-sdk/okex-go-sdk-api"
 
 	"github.com/astaxie/beego/orm"
 	gin "github.com/gin-gonic/gin"
@@ -62,25 +62,28 @@ func OnInitFlag(c *config.Config) (err error) {
 }
 
 func (app *App) RegistRestServer() {
+	var config okex.Config
+	config.Endpoint = "https://www.okex.com/"
+	config.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
+	config.SecretKey = "3628818392EC421EF456070057E0F9CF"
+	config.Passphrase = "IMDANDAN"
+	config.TimeoutSecond = 45
+	config.IsPrint = false
+	config.I18n = okex.ENGLISH
 
-	app.restServer = restful.NewRestServer("https://www.okex.com", "342d1884-db81-4a9c-8535-1d4351965adf", "3628818392EC421EF456070057E0F9CF", "IMDANDAN", jsonprocess.NewJsonProcess())
+	client := okex.NewClient(config)
 
-	app.restServer.RegistInterface("order", "/api/futures/v3/order", restful.Method_Post)
-	app.restServer.RegistInterface("position", "/api/futures/v3/position", restful.Method_Get)
-	app.restServer.RegistInterface("sigleposition", "/api/futures/v3/%v/position", restful.Method_Get)
+	st, err := client.GetFuturesPositions()
+	if err != nil {
+		fmt.Println(err)
+	}
 
+	fmt.Println(st)
 }
 func (app *App) CotrolHandlers() {
 
 	app.RegistRestServer()
 
-	mm := make(map[string]interface{}, 0)
-
-	body, err := app.restServer.SynCall("position", mm)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(body))
 	//	app.closeSig = make(chan bool, 1)
 
 	//	sagent := okex.NewAgentLogin(256)

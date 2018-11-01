@@ -59,9 +59,10 @@ func (s *RestServer) genHeards(url, method string) map[string]string {
 	ts := s.timeStamp()
 	heards["OK-ACCESS-KEY"] = s.apiKey
 	heards["OK-ACCESS-SIGN"] = sign.HMacSha256(ts+method+url, []byte(s.secrKey))
+	fmt.Println(ts, method, url)
 	heards["OK-ACCESS-TIMESTAMP"] = ts
 	heards["OK-ACCESS-PASSPHRASE"] = s.passPhrase
-	heards["contentType"] = "application/json"
+	heards["Content-Type"] = "application/json"
 	return heards
 }
 
@@ -138,12 +139,17 @@ type TimeStamp struct {
 }
 
 func (s *RestServer) timeStamp() string {
-	var ts TimeStamp
+	var (
+		ts   TimeStamp
+		body []byte
+		err  error
+	)
 	m := make(map[string]string, 0)
-	if body, err := http.Get(s.baseUrl+"/api/general/v3/time", m); err != nil {
-		if err := s.process.UnMarshal(body, &ts); err != nil {
-			return ts.Epoch
-		}
+	if body, err = http.Get(s.baseUrl+"/api/general/v3/time", m); err != nil {
+		return ""
 	}
-	return ""
+	if err = s.process.UnMarshal(body, &ts); err != nil {
+		return ""
+	}
+	return ts.Epoch
 }
