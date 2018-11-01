@@ -77,9 +77,10 @@ func (app *App) CotrolHandlers() {
 
 	mm := make(map[string]interface{}, 0)
 
-	if body, err := app.restServer.SynCall("order", mm); err != nil {
+	if body, err := app.restServer.SynCall("position", mm); err != nil {
 		fmt.Println(string(body))
 	}
+	fmt.Println(err)
 	//	app.closeSig = make(chan bool, 1)
 
 	//	sagent := okex.NewAgentLogin(256)
