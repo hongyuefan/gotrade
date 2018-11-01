@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"server/jsonprocess"
 	"server/restful"
-	"strconv"
-	"time"
-	"util/sign"
 
 	"util/config"
 	"util/log"
@@ -66,7 +63,7 @@ func OnInitFlag(c *config.Config) (err error) {
 
 func (app *App) RegistRestServer() {
 
-	app.restServer = restful.NewRestServer("https://www.okex.com", jsonprocess.NewJsonProcess())
+	app.restServer = restful.NewRestServer("https://www.okex.com", "342d1884-db81-4a9c-8535-1d4351965adf", "3628818392EC421EF456070057E0F9CF", "IMDANDAN", jsonprocess.NewJsonProcess())
 
 	app.restServer.RegistInterface("order", "/api/futures/v3/order", restful.Method_Post)
 	app.restServer.RegistInterface("position", "/api/futures/v3/position", restful.Method_Get)
@@ -78,19 +75,8 @@ func (app *App) CotrolHandlers() {
 	app.RegistRestServer()
 
 	mm := make(map[string]interface{}, 0)
-	heards := make(map[string]string, 0)
 
-	var unixMic int = int(time.Now().UnixNano() / 1000000)
-	timeStamp := strconv.Itoa(unixMic)
-	timeStamp = timeStamp[:len(timeStamp)-3] + "." + timeStamp[len(timeStamp)-3:]
-
-	heards["OK-ACCESS-KEY"] = "342d1884-db81-4a9c-8535-1d4351965adf"
-	heards["OK-ACCESS-SIGN"] = sign.HMacSha256(timeStamp+"GET"+"/api/futures/v3/position", []byte("3628818392EC421EF456070057E0F9CF"))
-	heards["OK-ACCESS-TIMESTAMP"] = timeStamp
-	heards["OK-ACCESS-PASSPHRASE"] = "IMDANDAN"
-	heards["contentType"] = "application/json"
-
-	body, err := app.restServer.SynCall("position", heards, mm)
+	body, err := app.restServer.SynCall("position", mm)
 	if err != nil {
 		fmt.Println(err)
 	}
