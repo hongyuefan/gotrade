@@ -64,11 +64,11 @@ func OnInitFlag(c *config.Config) (err error) {
 func (app *App) RegistRestServer() {
 	var config okex.Config
 	config.Endpoint = "https://www.okex.com/"
-	config.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
-	config.SecretKey = "3628818392EC421EF456070057E0F9CF"
-	config.Passphrase = "IMDANDAN"
+	config.ApiKey = "413eb727-1177-4404-a47b-ef94f414fab8"
+	config.SecretKey = "18DDC1E0231CA70260AE4711E0A3FA48"
+	config.Passphrase = "15600199768"
 	config.TimeoutSecond = 45
-	config.IsPrint = false
+	config.IsPrint = true
 	config.I18n = okex.ENGLISH
 
 	client := okex.NewClient(config)
