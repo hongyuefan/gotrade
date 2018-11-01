@@ -10,7 +10,7 @@ import (
 /*
 contentType:application/json
 */
-func Post(url string, contentType string, data []byte) ([]byte, error) {
+func Post(url string, headers map[string]string, data []byte) ([]byte, error) {
 
 	client := &hp.Client{}
 
@@ -21,7 +21,9 @@ func Post(url string, contentType string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	req.Header.Set("Content-Type", contentType)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	rsp, err := client.Do(req)
 	if rsp.StatusCode != hp.StatusOK {
@@ -35,14 +37,23 @@ func Post(url string, contentType string, data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func Get(url string, contentType string) ([]byte, error) {
-	rsp, err := hp.Get(url)
+func Get(url string, headers map[string]string) ([]byte, error) {
+
+	client := &hp.Client{}
+
+	req, err := hp.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rsp.StatusCode != hp.StatusOK {
-		return nil, fmt.Errorf("Get %v Error code:%v,msg:%v", url, rsp.StatusCode, rsp.Status)
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
+
+	rsp, err := client.Do(req)
+	if rsp.StatusCode != hp.StatusOK {
+		return nil, fmt.Errorf("GET %v Error code:%v,msg:%v", url, rsp.StatusCode, rsp.Status)
+	}
+
 	buf := new(bytes.Buffer)
 
 	io.Copy(buf, rsp.Body)
