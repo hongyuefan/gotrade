@@ -32,10 +32,11 @@ type mapValue struct {
 type RestServer struct {
 	safeMap *safemap.Map
 	process MsgProcess
+	baseUrl string
 }
 
-func NewRestServer(process MsgProcess) *RestServer {
-	return &RestServer{safeMap: new(safemap.Map), process: process}
+func NewRestServer(baseUrl string, process MsgProcess) *RestServer {
+	return &RestServer{baseUrl: baseUrl, safeMap: new(safemap.Map), process: process}
 }
 
 func (s *RestServer) RegistInterface(name, url, contentType string, method Method) (err error) {
@@ -43,7 +44,7 @@ func (s *RestServer) RegistInterface(name, url, contentType string, method Metho
 	if nil != s.safeMap.Get(name) {
 		return fmt.Errorf("duplicate name:%v", name)
 	}
-	s.safeMap.Set(name, &mapValue{Name: name, Url: url, TMethod: method, ContentType: contentType})
+	s.safeMap.Set(name, &mapValue{Name: name, Url: s.baseUrl + url, TMethod: method, ContentType: contentType})
 
 	return nil
 }
@@ -52,7 +53,7 @@ func (s *RestServer) CancelInterface(name string) {
 	s.safeMap.Del(name)
 }
 
-func (s *RestServer) SynCall(name string, params map[string]interface{}) (body []byte, err error) {
+func (s *RestServer) SynCall(name string, params map[string]interface{}, paths ...interface{}) (body []byte, err error) {
 
 	v := s.safeMap.Get(name)
 	if v == nil {
@@ -60,19 +61,19 @@ func (s *RestServer) SynCall(name string, params map[string]interface{}) (body [
 	}
 	switch v.(*mapValue).TMethod {
 	case Method_Get:
-		return http.Get(v.(*mapValue).Url+s.getParamProcess(params), v.(*mapValue).ContentType)
+		return http.Get(s.PathsProcess(v.(*mapValue).Url, paths...)+s.getParamProcess(params), v.(*mapValue).ContentType)
 	case Method_Post:
 		req, err := s.process.Marshal(params)
 		if err != nil {
 			return nil, err
 		}
-		return http.Post(v.(*mapValue).Url, v.(*mapValue).ContentType, req)
+		return http.Post(s.PathsProcess(v.(*mapValue).Url, paths...), v.(*mapValue).ContentType, req)
 	default:
 		return nil, fmt.Errorf("method not right")
 	}
 }
 
-func (s *RestServer) AsynCall(name string, params map[string]interface{}, funcAsynCall FuncAsynCall) {
+func (s *RestServer) AsynCall(name string, params map[string]interface{}, funcAsynCall FuncAsynCall, paths ...interface{}) {
 
 	v := s.safeMap.Get(name)
 	if v == nil {
@@ -80,7 +81,7 @@ func (s *RestServer) AsynCall(name string, params map[string]interface{}, funcAs
 	}
 	switch v.(*mapValue).TMethod {
 	case Method_Get:
-		rsp, err := http.Get(v.(*mapValue).Url+s.getParamProcess(params), v.(*mapValue).ContentType)
+		rsp, err := http.Get(s.PathsProcess(v.(*mapValue).Url, paths...)+s.getParamProcess(params), v.(*mapValue).ContentType)
 		funcAsynCall(rsp, err)
 		break
 	case Method_Post:
@@ -89,12 +90,16 @@ func (s *RestServer) AsynCall(name string, params map[string]interface{}, funcAs
 			funcAsynCall(nil, err)
 			break
 		}
-		rsp, err := http.Post(v.(*mapValue).Url, v.(*mapValue).ContentType, req)
+		rsp, err := http.Post(s.PathsProcess(v.(*mapValue).Url, paths...), v.(*mapValue).ContentType, req)
 		funcAsynCall(rsp, err)
 		break
 	default:
 		funcAsynCall(nil, fmt.Errorf("method not right"))
 	}
+}
+
+func (s *RestServer) PathsProcess(url string, params ...interface{}) string {
+	return fmt.Sprintf(url, params...)
 }
 
 func (s *RestServer) getParamProcess(params map[string]interface{}) string {

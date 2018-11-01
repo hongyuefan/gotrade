@@ -2,18 +2,15 @@ package app
 
 import (
 	"api"
-	"control/okex"
+
 	"fmt"
-	mo "models/okex"
+
 	"net/http"
 	"server/jsonprocess"
 	"server/restful"
-	"server/wshb"
-	"strconv"
-	"time"
+
 	"util/config"
 	"util/log"
-	"util/sign"
 
 	"github.com/astaxie/beego/orm"
 	gin "github.com/gin-gonic/gin"
@@ -67,32 +64,42 @@ func OnInitFlag(c *config.Config) (err error) {
 
 func (app *App) RegistRestServer() {
 
-	app.restServer = restful.NewRestServer(jsonprocess.NewJsonProcess())
+	app.restServer = restful.NewRestServer("https://www.okex.com", jsonprocess.NewJsonProcess())
 
-	app.restServer.RegistInterface("order", "https://www.okex.com/api/futures/v3/order", "contentType:application/json", restful.Method_Post)
+	app.restServer.RegistInterface("order", "/api/futures/v3/order", "contentType:application/json", restful.Method_Post)
+	app.restServer.RegistInterface("position", "/api/futures/v3/position", "contentType:application/json", restful.Method_Get)
+	app.restServer.RegistInterface("sigleposition", "/api/futures/v3/%v/position", "contentType:application/json", restful.Method_Get)
+
 }
 func (app *App) CotrolHandlers() {
 
-	app.closeSig = make(chan bool, 1)
+	app.RegistRestServer()
 
-	sagent := okex.NewAgentLogin(256)
+	mm := make(map[string]interface{}, 0)
 
-	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, sagent)
+	if body, err := app.restServer.SynCall("order", mm); err != nil {
+		fmt.Println(string(body))
+	}
+	//	app.closeSig = make(chan bool, 1)
 
-	go klGate.Run(app.closeSig)
+	//	sagent := okex.NewAgentLogin(256)
 
-	var lg mo.ReqFurtureLogin
-	var unixMic int = int(time.Now().UnixNano() / 1000000)
-	timeStamp := strconv.Itoa(unixMic)
-	timeStamp = timeStamp[:len(timeStamp)-3] + "." + timeStamp[len(timeStamp)-3:]
-	fmt.Println(timeStamp)
-	lg.Event = "login"
-	lg.Params.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
-	lg.Params.PassPhrase = "IMDANDAN"
-	lg.Params.Sign = sign.HMacSha256(timeStamp+"GET"+"/users/self/verify", []byte("3628818392EC421EF456070057E0F9CF"))
-	lg.Params.TimeStamp = timeStamp
+	//	klGate := wshb.NewGate("wss://real.okex.com:10440/websocket/okexapi", 1, 1024, 65536, 5*time.Second, 5*time.Second, true, sagent)
 
-	sagent.WriteMsg(lg)
+	//	go klGate.Run(app.closeSig)
+
+	//	var lg mo.ReqFurtureLogin
+	//	var unixMic int = int(time.Now().UnixNano() / 1000000)
+	//	timeStamp := strconv.Itoa(unixMic)
+	//	timeStamp = timeStamp[:len(timeStamp)-3] + "." + timeStamp[len(timeStamp)-3:]
+	//	fmt.Println(timeStamp)
+	//	lg.Event = "login"
+	//	lg.Params.ApiKey = "342d1884-db81-4a9c-8535-1d4351965adf"
+	//	lg.Params.PassPhrase = "IMDANDAN"
+	//	lg.Params.Sign = sign.HMacSha256(timeStamp+"GET"+"/users/self/verify", []byte("3628818392EC421EF456070057E0F9CF"))
+	//	lg.Params.TimeStamp = timeStamp
+
+	//	sagent.WriteMsg(lg)
 }
 
 func (app *App) OnStart(c *config.Config) error {
