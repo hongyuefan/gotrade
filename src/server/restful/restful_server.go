@@ -141,7 +141,7 @@ func (s *RestServer) timeStamp() string {
 	var ts TimeStamp
 	m := make(map[string]string, 0)
 	if body, err := http.Get(s.baseUrl+"/api/general/v3/time", m); err != nil {
-		if err := s.process.UnMarshal(body, ts); err != nil {
+		if err := s.process.UnMarshal(body, &ts); err != nil {
 			return ts.Epoch
 		}
 	}
